@@ -18,7 +18,7 @@ def detect_fruits(image_path, weights=WEIGHTS, conf_threshold=0.25):
         print(f"Image not found: {image_path}")
         return
 
-    model   = YOLO(weights)
+    model = YOLO("models/best.pt")
     results = model(image_path, conf=conf_threshold)
     image   = cv2.imread(image_path)
 

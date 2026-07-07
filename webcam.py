@@ -15,7 +15,7 @@ COLORS = {
 }
 
 def run_webcam(camera_index=1):
-    model = YOLO(WEIGHTS)
+    model = YOLO("models/best.pt")
     cap   = cv2.VideoCapture(camera_index)
 
     if not cap.isOpened():
@@ -90,4 +90,4 @@ def run_webcam(camera_index=1):
 
 
 if __name__ == '__main__':
-    run_webcam(camera_index=1)
+    run_webcam(camera_index=0)

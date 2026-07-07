@@ -1,5 +1,23 @@
+# Virtual environments
 venv/
 .venv/
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
+
+# YOLO training outputs
+runs/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

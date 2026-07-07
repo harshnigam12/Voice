@@ -1,5 +1,9 @@
-train: C:/Users/ASUS/Desktop/fruit_detection/dataset/images/train
-val: C:/Users/ASUS/Desktop/fruit_detection/dataset/images/val
+train: dataset/images/train
+val: dataset/images/val
 
 nc: 3
-names: ['apple', 'banana', 'orange']
+
+names:
+  - apple
+  - banana
+  - orange

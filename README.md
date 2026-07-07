@@ -1,130 +1,249 @@
-# Object_detection_model
-# Design and Implementation of an Intelligent Assistive Robotic Arm with Vision-Based Object Detection and Autonomous Pick-and-Place for Wheelchair Users
+# 🍎 Real-Time Object Detection and World Coordinate Estimation using YOLOv8 and ArUco Markers
 
-## Overview
-This project presents a low-cost AI-powered assistive robotic arm designed to help wheelchair users perform object handling tasks independently. The system combines computer vision, machine learning, embedded systems, and robotics to detect objects and perform intelligent pick-and-place operations.
+A complete computer vision pipeline for **real-time object detection** and **world coordinate estimation** using **YOLOv8**, **camera calibration**, and **ArUco marker-based pose estimation**.
 
-The robotic arm identifies objects such as apple, banana, and orange using a trained YOLOv8 model and performs pick-and-place tasks using a 5-DOF robotic arm controlled through Raspberry Pi 5 and ESP32.
+The project detects objects from a webcam, determines the center of the detected object, and converts its pixel coordinates into real-world coordinates, making it suitable for robotics and autonomous pick-and-place applications.
 
 ---
 
-## Project Objective
-The main objective of this project is to develop an affordable intelligent robotic assistive system that can:
+# 📖 Project Overview
 
-- Detect and recognize objects in real time
-- Convert 2D object coordinates into 3D positions using depth mapping
-- Perform vision-guided pick-and-place operations
-- Assist wheelchair users in daily object handling tasks
-- Reduce dependence on caregivers
+This project integrates multiple computer vision techniques into a single pipeline.
 
----
+The workflow consists of:
 
-## Features
+- Camera Calibration
+- YOLOv8 Object Detection
+- ArUco Marker Pose Estimation
+- Pixel-to-World Coordinate Conversion
+- Real-Time Webcam Detection
 
-### Current Features
-- Real-time object detection using YOLOv8
-- Detection of apple, banana, and orange
-- 5-DOF robotic arm movement
-- Joystick-controlled manual operation
-- 2D to 3D coordinate conversion using depth mapping algorithm
-- ESP32-based robotic control
-
-### Future Enhancements
-- Autonomous grasping using inverse kinematics
-- Voice-controlled operation
-- Multi-object tracking
-- Advanced depth sensing integration
+The estimated world coordinates can be directly used for robotic arm applications and autonomous object manipulation.
 
 ---
 
-## System Architecture
+# ✨ Features
 
-### Hardware Components
-- Raspberry Pi 5
-- ESP32 Microcontroller
-- USB/Standard Camera
-- 5-DOF Robotic Arm
-- Servo Motors
-- Motor Driver
-- Joystick Module
-- Power Supply Battery
-
-### Software Components
-- Python
-- YOLOv8
-- OpenCV
-- NumPy
-- PySerial
-- Arduino IDE
-- Raspberry Pi OS
+- Custom YOLOv8 object detector
+- Camera calibration using chessboard images
+- ArUco marker pose estimation
+- Pixel-to-world coordinate transformation
+- Real-time webcam detection
+- Real-world coordinate estimation
+- Modular project structure
+- Easily extendable for robotic arm applications
 
 ---
 
-## Working Principle
+# 🛠 Technologies Used
 
-1. Camera captures real-time images
-2. YOLOv8 detects objects in image frame
-3. Objects are classified as apple, banana, or orange
-4. 2D coordinates are extracted
-5. Depth mapping converts 2D coordinates into 3D coordinates
-6. Raspberry Pi processes movement calculations
-7. Commands sent to ESP32
-8. ESP32 controls robotic arm motors
-9. Robotic arm performs pick-and-place action
-
----
-
-## Object Detection Model
-
-### Model Used:
-YOLOv8 Object Detection Model
-
-### Trained Classes:
-- Apple
-- Banana
-- Orange
-
-### Output:
-- Object Label
-- Confidence Score
-- Bounding Box Coordinates
+| Category | Technology |
+|-----------|------------|
+| Language | Python |
+| Object Detection | YOLOv8 |
+| Computer Vision | OpenCV |
+| Numerical Computing | NumPy |
+| Visualization | Matplotlib |
+| Annotation Format | Pascal VOC XML |
+| IDE | Visual Studio Code |
 
 ---
 
-## Robotic Arm Details
+# 📂 Project Structure
 
-The robotic arm has 5 Degrees of Freedom:
+```text
+Fruit_Detection_3D_Localization
 
-1. Base Rotation
-2. Shoulder Movement
-3. Elbow Movement
-4. Wrist Adjustment
-5. Gripper Open/Close
-
-This enables flexible movement in 3D space for accurate object manipulation.
+│
+├── dataset/
+├── images/
+├── models/
+│     └── best.pt
+│
+├── test_data/
+├── train_data/
+│
+├── vision/
+│     ├── aruco/
+│     ├── calibration/
+│     └── utils/
+│
+├── inference.py
+├── main.py
+├── webcam.py
+├── train.py
+├── data.yaml
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## Technologies Used
+---
 
-### Machine Learning:
-- YOLOv8 Deep Learning Detection
+# 🔄 System Pipeline
 
-### Computer Vision:
-- OpenCV
-
-### Embedded Systems:
-- Raspberry Pi 5
-- ESP32
-
-### Robotics:
-- Servo-based 5-DOF Arm
+```text
+Camera
+   │
+   ▼
+Image Acquisition
+   │
+   ▼
+YOLOv8 Object Detection
+   │
+   ▼
+Bounding Box Center Extraction
+   │
+   ▼
+Camera Calibration
+   │
+   ▼
+ArUco Marker Pose Estimation
+   │
+   ▼
+Pixel-to-World Coordinate Transformation
+   │
+   ▼
+Real-World Coordinates (X, Y, Z)
+```
 
 ---
 
-## Installation Steps
+# ⚙️ Installation
 
-### 1. Clone Repository
+## 1. Clone the repository
+
 ```bash
-git clone https://github.com/yourusername/assistive-robotic-arm.git
-cd assistive-robotic-arm
+git clone https://github.com/YOUR_USERNAME/Fruit_Detection_3D_Localization.git
+```
+
+## 2. Move into the project directory
+
+```bash
+cd Fruit_Detection_3D_Localization
+```
+
+## 3. Create a virtual environment
+
+```bash
+python -m venv venv
+```
+
+## 4. Activate the virtual environment
+
+### Windows
+
+```bash
+.\venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+source venv/bin/activate
+```
+
+## 5. Install the dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# ▶️ How to Run
+
+## 1. Camera Calibration
+
+Capture chessboard images:
+
+```bash
+python vision/calibration/capture_images.py
+```
+
+Calibrate the camera:
+
+```bash
+python vision/calibration/calibrate.py
+```
+
+---
+
+## 2. Train the YOLOv8 Model
+
+```bash
+python train.py
+```
+
+---
+
+## 3. Test on an Image
+
+```bash
+python inference.py
+```
+
+---
+
+## 4. Real-Time Webcam Detection
+
+```bash
+python webcam.py
+```
+
+---
+
+## 5. Estimate World Coordinates
+
+```bash
+python main.py
+```
+
+---
+
+# 📸 Results
+
+## Camera Calibration
+
+![Camera Calibration](results/calibration.png)
+
+---
+
+## Object Detection
+
+![Object Detection](results/apple_detection.png)
+
+---
+
+## World Coordinate Estimation
+
+![World Coordinates](results/world_coordinates.png)
+
+---
+
+# 🚀 Future Improvements
+
+- Multi-object localization
+- Robotic arm pick-and-place integration
+- Raspberry Pi deployment
+- ROS2 integration
+- Depth camera support
+- TensorRT optimization
+
+---
+
+# 👨‍💻 Author
+
+**Vidhi Rajput**
+
+B.Tech in Electronics and Communication Engineering
+
+### Areas of Interest
+
+- Computer Vision
+- Robotics
+- Machine Learning
+- Artificial Intelligence
+
+If you found this project helpful, consider giving it a ⭐ on GitHub.
