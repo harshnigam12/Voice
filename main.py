@@ -1,57 +1,293 @@
-import cv2
+"""
+main.py
+
+Intelligent Robotic Arm
+
+System Flow
+
+Camera
+    ↓
+YOLO Detection
+    ↓
+Highest Confidence Fruit
+    ↓
+Pixel -> World
+    ↓
+Decision Engine
+    ↓
+Task Planner
+    ↓
+Inverse Kinematics
+    ↓
+Servo Mapper
+    ↓
+Trajectory Planner
+    ↓
+Arduino
+"""
+
+import time
 import numpy as np
-from ultralytics import YOLO
-from vision.utils.pixel_to_world import pixel_to_world
 
-# 🔴 Replace with YOUR values
-fx, fy = 729.54232691 ,728.80795106
-cx, cy = 340.95019522 ,239.40823975
+from config.robot import (
+    MODEL_PATH,
+    CONFIDENCE_THRESHOLD,
+    HANDOVER_POSITION,
+    SERIAL_PORT,
+    BAUDRATE
+)
 
-# ✅ Rotation matrix
-R = np.array([
-    [ 5.55055848e-04,  9.99696883e-01,  2.46137102e-02],
-    [ 8.10554094e-01,  1.39655899e-02, -5.85497244e-01],
-    [-5.85663515e-01,  2.02757272e-02, -8.10300650e-01]
-])
+from vision.webcam_detection import WebcamDetection
+from vision.detect import FruitDetector
+from vision.pose_estimation import PoseEstimator
+from vision.pixel_to_world import PixelToWorld
 
-# ✅ Translation vector
-T = np.array([
-    [ 0.09251071],
-    [-0.0079242 ],
-    [ 0.35281046]
-])
-K = np.mat([[fx,0,cx],
-            [0,fy,cy],
-            [0,0,1]])
+from robotics.inverse_kinematics import InverseKinematics
+from robotics.servo_mapper import ServoMapper
+from robotics.trajectory import TrajectoryPlanner
 
-model = YOLO("models/best.pt")
+from communication.serial_controller import SerialController
 
-cap = cv2.VideoCapture(0)
+from planner.task_planner import TaskPlanner
+from planner.decision_engine import DecisionEngine
 
-while True:
-    ret, frame = cap.read()
+from voice.voice_listener import VoiceListener
 
-    results = model(frame)
 
-    for r in results:
-        for box in r.boxes.xyxy:
-            x1, y1, x2, y2 = box
+def main():
 
-            u = (x1 + x2) / 2
-            v = (y1 + y2) / 2
+    print("=" * 60)
+    print(" Intelligent Robotic Arm Started ")
+    print("=" * 60)
 
-            img_points = np.array([[u, v]], dtype=np.double)
+    # -------------------------------------------------
+    # Camera
+    # -------------------------------------------------
 
-            world = pixel_to_world(K, R, T, img_points)
+    camera = WebcamDetection()
 
-            print("World Coordinate:", world)
+    camera.open()
 
-            cv2.circle(frame, (int(u), int(v)), 5, (0,255,0), -1)
+    # -------------------------------------------------
+    # Fruit Detector
+    # -------------------------------------------------
 
-    cv2.imshow("Frame", frame)
+    detector = FruitDetector(
 
-    if cv2.waitKey(1) == 27:
-        break
+        model_path=MODEL_PATH,
 
-cap.release()
-cv2.destroyAllWindows()
+        confidence=CONFIDENCE_THRESHOLD
+
+    )
+
+    # -------------------------------------------------
+    # Camera Parameters
+    # (Replace with your calibration values)
+    # -------------------------------------------------
+
+    K = np.array([
+        [729.54232691, 0, 340.95019522],
+        [0, 728.80795106, 239.40823975],
+        [0, 0, 1]
+    ])
+
+    distortion = np.zeros((5, 1))
+
+    pose = PoseEstimator(
+
+        K,
+
+        distortion,
+
+        marker_length=0.05
+
+    )
+
+    # -------------------------------------------------
+    # Robot
+    # -------------------------------------------------
+
+    ik = InverseKinematics()
+
+    mapper = ServoMapper()
+
+    serial = SerialController(
+
+        port=SERIAL_PORT,
+
+        baudrate=BAUDRATE
+
+    )
+
+    if not serial.connect():
+
+        print("Arduino Connection Failed")
+
+        return
+
+    trajectory = TrajectoryPlanner(serial)
+
+    planner = TaskPlanner(
+
+        detector,
+
+        ik,
+
+        mapper,
+
+        trajectory,
+
+        HANDOVER_POSITION
+
+    )
+
+    decision = DecisionEngine(planner)
+
+    # -------------------------------------------------
+    # Voice Listener
+    # -------------------------------------------------
+
+    voice = VoiceListener(
+
+        model_path="vosk-model-small-en-us-0.15"
+
+    )
+
+    voice.start()
+
+    print("\nRobot Ready\n")
+
+    # -------------------------------------------------
+    # Main Loop
+    # -------------------------------------------------
+
+    while True:
+
+        frame = camera.read()
+
+        if frame is None:
+
+            continue
+
+        # ---------------------------------------------
+        # Estimate Camera Pose
+        # ---------------------------------------------
+
+        R, T = pose.estimate(frame)
+
+        target = None
+
+        if R is not None:
+
+            converter = PixelToWorld(
+
+                K,
+
+                R,
+
+                T
+
+            )
+
+            detections = detector.detect(frame)
+
+            frame = detector.draw(
+
+                frame,
+
+                detections
+
+            )
+
+            if len(detections) > 0:
+
+                # Highest confidence fruit
+
+                best = max(
+
+                    detections,
+
+                    key=lambda d: d["confidence"]
+
+                )
+
+                u, v = best["center"]
+
+                x, y, z = converter.convert(
+
+                    u,
+
+                    v
+
+                )
+
+                target = (x, y, z)
+
+                print(
+
+                    f"\nTarget = {best['class']}"
+
+                )
+
+                print(
+
+                    f"Confidence = {best['confidence']:.2f}"
+
+                )
+
+                print(
+
+                    f"World = ({x:.1f}, {y:.1f}, {z:.1f})"
+
+                )
+
+        # ---------------------------------------------
+        # Voice Command
+        # ---------------------------------------------
+
+        command = voice.get_command()
+
+        # ---------------------------------------------
+        # Decision Engine
+        # ---------------------------------------------
+
+        decision.run(
+
+            target=target,
+
+            voice_command=command
+
+        )
+
+        # ---------------------------------------------
+        # Display
+        # ---------------------------------------------
+
+        camera.show(
+
+            "Robot Camera",
+
+            frame
+
+        )
+
+        if camera.wait() == ord('q'):
+
+            break
+
+    # -------------------------------------------------
+    # Cleanup
+    # -------------------------------------------------
+
+    voice.stop()
+
+    camera.release()
+
+    serial.disconnect()
+
+    print("\nRobot Closed")
+
+
+if __name__ == "__main__":
+
+    main()
