@@ -9,7 +9,7 @@ Camera
     ↓
 YOLO Detection
     ↓
-Highest Confidence Fruit
+Voice-selected Fruit
     ↓
 Pixel -> World
     ↓
@@ -65,7 +65,6 @@ def main():
     # -------------------------------------------------
 
     camera = WebcamDetection()
-
     camera.open()
 
     # -------------------------------------------------
@@ -73,16 +72,12 @@ def main():
     # -------------------------------------------------
 
     detector = FruitDetector(
-
         model_path=MODEL_PATH,
-
         confidence=CONFIDENCE_THRESHOLD
-
     )
 
     # -------------------------------------------------
     # Camera Parameters
-    # (Replace with your calibration values)
     # -------------------------------------------------
 
     K = np.array([
@@ -94,13 +89,9 @@ def main():
     distortion = np.zeros((5, 1))
 
     pose = PoseEstimator(
-
         K,
-
         distortion,
-
         marker_length=0.05
-
     )
 
     # -------------------------------------------------
@@ -112,11 +103,8 @@ def main():
     mapper = ServoMapper()
 
     serial = SerialController(
-
         port=SERIAL_PORT,
-
         baudrate=BAUDRATE
-
     )
 
     if not serial.connect():
@@ -128,17 +116,11 @@ def main():
     trajectory = TrajectoryPlanner(serial)
 
     planner = TaskPlanner(
-
         detector,
-
         ik,
-
         mapper,
-
         trajectory,
-
         HANDOVER_POSITION
-
     )
 
     decision = DecisionEngine(planner)
@@ -148,14 +130,18 @@ def main():
     # -------------------------------------------------
 
     voice = VoiceListener(
-
         model_path="vosk-model-small-en-us-0.15"
-
     )
 
     voice.start()
 
     print("\nRobot Ready\n")
+
+    # -------------------------------------------------
+    # Selected Fruit
+    # -------------------------------------------------
+
+    requested_fruit = None
 
     # -------------------------------------------------
     # Main Loop
@@ -166,8 +152,31 @@ def main():
         frame = camera.read()
 
         if frame is None:
-
             continue
+
+        # ---------------------------------------------
+        # Get Voice Command
+        # ---------------------------------------------
+
+        command = voice.get_command()
+
+        if command:
+
+            print(
+                f"\nReceived Command: {command}"
+            )
+
+            if command.startswith("get "):
+
+                requested_fruit = command.replace(
+                    "get ",
+                    "",
+                    1
+                ).strip()
+
+                print(
+                    f"Requested Fruit: {requested_fruit}"
+                )
 
         # ---------------------------------------------
         # Estimate Camera Pose
@@ -180,83 +189,87 @@ def main():
         if R is not None:
 
             converter = PixelToWorld(
-
                 K,
-
                 R,
-
                 T
-
             )
 
             detections = detector.detect(frame)
 
             frame = detector.draw(
-
                 frame,
-
                 detections
-
             )
 
-            if len(detections) > 0:
+            # -----------------------------------------
+            # Find Requested Fruit
+            # -----------------------------------------
 
-                # Highest confidence fruit
+            if requested_fruit is not None:
 
-                best = max(
+                matching_detections = [
 
-                    detections,
+                    d for d in detections
 
-                    key=lambda d: d["confidence"]
+                    if d["class"].lower()
+                    == requested_fruit.lower()
 
-                )
+                ]
 
-                u, v = best["center"]
+                if len(matching_detections) > 0:
 
-                x, y, z = converter.convert(
+                    # If multiple requested fruits are
+                    # visible, choose the highest confidence.
 
-                    u,
+                    best = max(
+                        matching_detections,
+                        key=lambda d: d["confidence"]
+                    )
 
-                    v
+                    u, v = best["center"]
 
-                )
+                    x, y, z = converter.convert(
+                        u,
+                        v
+                    )
 
-                target = (x, y, z)
+                    target = (x, y, z)
 
-                print(
+                    print(
+                        f"\nRequested Fruit = "
+                        f"{requested_fruit}"
+                    )
 
-                    f"\nTarget = {best['class']}"
+                    print(
+                        f"Detected = {best['class']}"
+                    )
 
-                )
+                    print(
+                        f"Confidence = "
+                        f"{best['confidence']:.2f}"
+                    )
 
-                print(
+                    print(
+                        f"World = "
+                        f"({x:.1f}, "
+                        f"{y:.1f}, "
+                        f"{z:.1f})"
+                    )
 
-                    f"Confidence = {best['confidence']:.2f}"
+                else:
 
-                )
-
-                print(
-
-                    f"World = ({x:.1f}, {y:.1f}, {z:.1f})"
-
-                )
-
-        # ---------------------------------------------
-        # Voice Command
-        # ---------------------------------------------
-
-        command = voice.get_command()
+                    print(
+                        f"\nWaiting for "
+                        f"{requested_fruit}..."
+                    )
 
         # ---------------------------------------------
         # Decision Engine
         # ---------------------------------------------
 
         decision.run(
-
             target=target,
-
             voice_command=command
-
         )
 
         # ---------------------------------------------
@@ -264,15 +277,11 @@ def main():
         # ---------------------------------------------
 
         camera.show(
-
             "Robot Camera",
-
             frame
-
         )
 
         if camera.wait() == ord('q'):
-
             break
 
     # -------------------------------------------------
@@ -289,5 +298,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

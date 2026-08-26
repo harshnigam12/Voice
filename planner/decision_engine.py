@@ -24,7 +24,7 @@ class DecisionEngine:
         self.planner = planner
 
         # Default Mode
-        self.mode = "AUTO"
+        self.mode = "VOICE"
 
     # ------------------------------------------------
     # Change Robot Mode
@@ -85,9 +85,10 @@ class DecisionEngine:
 
             return
 
-        if command == "pick fruit":
+        if command.startswith("get "):
+            fruit = command.replace("get ", "", 1).strip()
 
-            if target is None:
+            if target is None or fruit not in ["apple", "banana", "orange"]:
 
                 print("No Fruit Detected")
                 return

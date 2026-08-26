@@ -96,17 +96,11 @@ class VoiceListener:
         print("\nVoice Listener Started")
 
         with sd.RawInputStream(
-
             samplerate=self.samplerate,
-
             blocksize=8000,
-
             dtype="int16",
-
             channels=1,
-
             callback=self.audio_callback
-
         ):
 
             while self.running:
@@ -116,29 +110,45 @@ class VoiceListener:
                 if self.recognizer.AcceptWaveform(data):
 
                     result = json.loads(
-
                         self.recognizer.Result()
-
                     )
 
                     text = result.get(
-
                         "text",
-
                         ""
-
                     ).strip().lower()
+
+                    # Normalize common Vosk misrecognitions
+
+                    if text in [
+                        "big apple",
+                        "pick up apple",
+                        "pick apple"
+                    ]:
+                        text = "get apple"
+
+                    elif text in [
+                        "big banana",
+                        "pick up banana",
+                        "pick banana"
+                    ]:
+                        text = "get banana"
+
+                    elif text in [
+                        "big orange",
+                        "pick up orange",
+                        "pick orange"
+                    ]:
+                        text = "get orange"
 
                     if text != "":
 
                         with self.lock:
-
                             self.latest_command = text
 
                         print(
-
-                            "\nVoice Command :", text
-
+                            "\nVoice Command :",
+                            text
                         )
 
     # ---------------------------------------------------
@@ -148,17 +158,13 @@ class VoiceListener:
     def start(self):
 
         if self.running:
-
             return
 
         self.running = True
 
         self.thread = threading.Thread(
-
             target=self.listen_loop,
-
             daemon=True
-
         )
 
         self.thread.start()
@@ -172,7 +178,6 @@ class VoiceListener:
         self.running = False
 
         if self.thread is not None:
-
             self.thread.join()
 
         print("Voice Listener Stopped")
@@ -213,11 +218,8 @@ if __name__ == "__main__":
             if command:
 
                 print(
-
-                    "Recognized :",
-
+                    "Recognized :",q
                     command
-
                 )
 
     except KeyboardInterrupt:
