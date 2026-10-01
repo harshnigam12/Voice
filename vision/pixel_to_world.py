@@ -54,9 +54,9 @@ class PixelToWorld:
 
         return (
 
-            float(world[0]),
+            float(world[0][0]),
 
-            float(world[1]),
+            float(world[1][0]),
 
             0.0
 

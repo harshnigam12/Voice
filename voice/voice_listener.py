@@ -218,7 +218,7 @@ if __name__ == "__main__":
             if command:
 
                 print(
-                    "Recognized :",q
+                    "Recognized :",
                     command
                 )
 
